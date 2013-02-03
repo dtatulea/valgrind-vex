@@ -343,16 +343,30 @@ extern Bool eqIRConst ( IRConst*, IRConst* );
 */
 
 typedef
+   enum {
+      /* save all registers on caller side */
+      Ict_Normal = 0,
+      /* callee is responsible for saving/restoring clobbered regs */
+      Ict_RegSelect = 1
+   }
+   IRCalleeType;
+
+typedef
    struct {
-      Int          regparms;
-      const HChar* name;
-      void*        addr;
-      UInt         mcx_mask;
+      const HChar*  name;
+      void*         addr;
+      Int           regparms;
+
+      IRCalleeType  type;
+      UInt          mcx_mask;
+      UInt          inline_size;
    }
    IRCallee;
 
 /* Create an IRCallee. */
-extern IRCallee* mkIRCallee ( Int regparms, const HChar* name, void* addr );
+extern IRCallee* mkIRCallee ( Int regparms, const HChar* name, void* addr);
+extern IRCallee* mkIRCalleeRegSelect ( Int regparms, const HChar* name,
+                              void* addr, UInt size );
 
 /* Deep-copy an IRCallee. */
 extern IRCallee* deepCopyIRCallee ( IRCallee* );
@@ -2188,6 +2202,13 @@ extern
 IRDirty* unsafeIRDirty_1_N ( IRTemp dst, 
                              Int regparms, const HChar* name, void* addr, 
                              IRExpr** args );
+
+extern
+IRDirty*
+unsafeIRDirty_1_N_reg_select ( IRTemp dst,
+			   Int regparms, const HChar* name,
+			   void* addr,  UInt size,
+			   IRExpr** args );
 
 
 /* --------------- Memory Bus Events --------------- */

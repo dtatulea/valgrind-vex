@@ -98,6 +98,17 @@ void ppIRCallee ( IRCallee* ce )
       vex_printf("[rp=%d]", ce->regparms);
    if (ce->mcx_mask > 0)
       vex_printf("[mcx=0x%x]", ce->mcx_mask);
+
+   switch (ce->type) {
+      case Ict_Normal:
+         vex_printf("[type=Normal]");
+              break;
+      case Ict_RegSelect:
+         vex_printf("[type=RegSelect]");
+         vex_printf("[fn_size=%u]", ce->inline_size);
+         break;
+      default: vpanic("ppIRCallee");
+   }
    vex_printf("{%p}", (void*)ce->addr);
 }
 
@@ -1619,13 +1630,30 @@ IRCallee* mkIRCallee ( Int regparms, const HChar* name, void* addr )
    ce->regparms = regparms;
    ce->name     = name;
    ce->addr     = addr;
+   ce->type     = Ict_Normal;
    ce->mcx_mask = 0;
+   ce->inline_size = 0;
    vassert(regparms >= 0 && regparms <= 3);
    vassert(name != NULL);
    vassert(addr != 0);
    return ce;
 }
 
+IRCallee* mkIRCalleeRegSelect ( Int regparms, const HChar* name,
+                                void* addr, UInt size )
+{
+   IRCallee* ce = LibVEX_Alloc(sizeof(IRCallee));
+   ce->regparms = regparms;
+   ce->name     = name;
+   ce->addr     = addr;
+   ce->type     = Ict_RegSelect;
+   ce->mcx_mask = 0;
+   ce->inline_size = size;
+   vassert(regparms >= 0 && regparms <= 3);
+   vassert(name != NULL);
+   vassert(addr != 0);
+   return ce;
+}
 
 /* Constructors -- IRRegArray */
 
@@ -2117,8 +2145,11 @@ IRConst* deepCopyIRConst ( IRConst* c )
 
 IRCallee* deepCopyIRCallee ( IRCallee* ce )
 {
-   IRCallee* ce2 = mkIRCallee(ce->regparms, ce->name, ce->addr);
+   IRCallee* ce2;
+   ce = mkIRCallee(ce->regparms, ce->name, ce->addr);
+   ce2->type = ce->type;
    ce2->mcx_mask = ce->mcx_mask;
+   ce2->inline_size = ce->inline_size;
    return ce2;
 }
 
@@ -4440,6 +4471,20 @@ IRDirty* unsafeIRDirty_1_N ( IRTemp dst,
 {
    IRDirty* d = emptyIRDirty();
    d->cee   = mkIRCallee ( regparms, name, addr );
+   d->guard = IRExpr_Const(IRConst_U1(True));
+   d->args  = args;
+   d->tmp   = dst;
+   return d;
+}
+
+IRDirty*
+unsafeIRDirty_1_N_reg_select ( IRTemp dst,
+			       Int regparms, const HChar* name,
+			       void* addr, UInt size,
+			       IRExpr** args )
+{
+   IRDirty* d = emptyIRDirty();
+   d->cee   = mkIRCalleeRegSelect ( regparms, name, addr, size );
    d->guard = IRExpr_Const(IRConst_U1(True));
    d->args  = args;
    d->tmp   = dst;

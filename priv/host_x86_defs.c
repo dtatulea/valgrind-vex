@@ -639,13 +639,14 @@ X86Instr* X86Instr_Push( X86RMI* src ) {
    return i;
 }
 X86Instr* X86Instr_Call ( X86CondCode cond, Addr32 target, Int regparms,
-                          RetLoc rloc ) {
+                          RetLoc rloc, IRCalleeType type ) {
    X86Instr* i          = LibVEX_Alloc(sizeof(X86Instr));
    i->tag               = Xin_Call;
    i->Xin.Call.cond     = cond;
    i->Xin.Call.target   = target;
    i->Xin.Call.regparms = regparms;
    i->Xin.Call.rloc     = rloc;
+   i->Xin.Call.type	= type;
    vassert(regparms >= 0 && regparms <= 3);
    vassert(is_sane_RetLoc(rloc));
    return i;
@@ -1282,17 +1283,19 @@ void getRegUsage_X86Instr (HRegUsage* u, X86Instr* i, Bool mode64)
             which fall within the register allocator's jurisdiction.
             These I believe to be %eax %ecx %edx and all the xmm
             registers. */
-         addHRegUse(u, HRmWrite, hregX86_EAX());
-         addHRegUse(u, HRmWrite, hregX86_ECX());
-         addHRegUse(u, HRmWrite, hregX86_EDX());
-         addHRegUse(u, HRmWrite, hregX86_XMM0());
-         addHRegUse(u, HRmWrite, hregX86_XMM1());
-         addHRegUse(u, HRmWrite, hregX86_XMM2());
-         addHRegUse(u, HRmWrite, hregX86_XMM3());
-         addHRegUse(u, HRmWrite, hregX86_XMM4());
-         addHRegUse(u, HRmWrite, hregX86_XMM5());
-         addHRegUse(u, HRmWrite, hregX86_XMM6());
-         addHRegUse(u, HRmWrite, hregX86_XMM7());
+	 if (i->Xin.Call.type == Ict_Normal) {
+             addHRegUse(u, HRmWrite, hregX86_EAX());
+             addHRegUse(u, HRmWrite, hregX86_ECX());
+             addHRegUse(u, HRmWrite, hregX86_EDX());
+             addHRegUse(u, HRmWrite, hregX86_XMM0());
+             addHRegUse(u, HRmWrite, hregX86_XMM1());
+             addHRegUse(u, HRmWrite, hregX86_XMM2());
+             addHRegUse(u, HRmWrite, hregX86_XMM3());
+             addHRegUse(u, HRmWrite, hregX86_XMM4());
+             addHRegUse(u, HRmWrite, hregX86_XMM5());
+             addHRegUse(u, HRmWrite, hregX86_XMM6());
+             addHRegUse(u, HRmWrite, hregX86_XMM7());
+         }
          /* Now we have to state any parameter-carrying registers
             which might be read.  This depends on the regparmness. */
          switch (i->Xin.Call.regparms) {

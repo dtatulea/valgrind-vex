@@ -1295,7 +1295,7 @@ IRAtom* mkLazyN ( MCEnv* mce,
       tl_assert(isOriginalAtom(mce, exprvec[i]));
       /* Only take notice of this arg if the callee's mc-exclusion
          mask does not say it is to be excluded. */
-      if (cee->mcx_mask & (1<<i)) {
+      if (cee->type == Ict_Normal && cee->mcx_mask & (1<<i)) {
          /* the arg is to be excluded from definedness checking.  Do
             nothing. */
          if (0) VG_(printf)("excluding %s(%d)\n", cee->name, i);
@@ -2367,7 +2367,7 @@ void do_shadow_Dirty ( MCEnv* mce, IRDirty* d )
 
    /* Inputs: unmasked args */
    for (i = 0; d->args[i]; i++) {
-      if (d->cee->mcx_mask & (1<<i)) {
+      if (d->cee->type == Ict_Normal && d->cee->mcx_mask & (1<<i)) {
          /* ignore this arg */
       } else {
          here = mkPCastTo( mce, Ity_I32, expr2vbits(mce, d->args[i]) );
